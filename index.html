@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>US Healthcare AI Analyzer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header { background: #1a1f36; color: white; padding: 18px 40px; display: flex; align-items: center; gap: 12px; }
+    header .logo { font-size: 22px; font-weight: 700; }
+    header .badge { background: #3b82f6; color: white; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+
+    .main { display: flex; flex: 1; }
+
+    .left-panel { width: 360px; min-width: 320px; background: #1a1f36; color: white; padding: 40px 32px; display: flex; flex-direction: column; gap: 22px; }
+    .left-panel h1 { font-size: 24px; font-weight: 700; line-height: 1.3; }
+    .left-panel p.subtitle { font-size: 13px; color: #a0aec0; line-height: 1.6; }
+    .divider { border: none; border-top: 1px solid #2d3452; }
+    .left-panel label { font-size: 11px; font-weight: 600; color: #a0aec0; letter-spacing: 0.8px; text-transform: uppercase; }
+    .left-panel textarea { width: 100%; height: 150px; background: #252b4a; color: #e2e8f0; border: 1px solid #3d4466; border-radius: 10px; padding: 14px; font-size: 13px; line-height: 1.6; resize: none; outline: none; transition: border 0.2s; }
+    .left-panel textarea:focus { border-color: #3b82f6; }
+    .left-panel textarea::placeholder { color: #4a5278; }
+
+    .btn-analyze { background: #3b82f6; color: white; border: none; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%; }
+    .btn-analyze:hover { background: #2563eb; }
+    .btn-analyze:disabled { background: #3d4466; cursor: not-allowed; }
+
+    .example-chips { display: flex; flex-direction: column; gap: 8px; }
+    .examples-label { font-size: 11px; color: #4a5278; text-align: center; }
+    .chip { background: #252b4a; border: 1px solid #3d4466; color: #a0aec0; font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: left; }
+    .chip:hover { background: #3d4466; color: white; border-color: #3b82f6; }
+
+    .right-panel { flex: 1; padding: 40px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; }
+
+    .placeholder-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
+    .placeholder-state .icon { font-size: 52px; opacity: 0.3; }
+    .placeholder-state h2 { font-size: 20px; font-weight: 600; color: #4a5568; }
+    .placeholder-state p { font-size: 14px; color: #a0aec0; max-width: 320px; }
+
+    .loading { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 80px; flex: 1; }
+    .loading.visible { display: flex; }
+    .spinner-wrap { display: flex; align-items: center; gap: 12px; color: #3b82f6; font-size: 15px; font-weight: 500; }
+    .spinner { width: 22px; height: 22px; border: 3px solid #dbeafe; border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .loading-step { font-size: 13px; color: #a0aec0; display: flex; align-items: center; gap: 8px; }
+    .loading-step.active { color: #3b82f6; }
+    .loading-step.done { color: #48bb78; }
+
+    .error-box { display: none; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 12px; padding: 20px 24px; color: #c53030; font-size: 14px; line-height: 1.6; }
+    .error-box.visible { display: block; }
+
+    .results { display: none; flex-direction: column; gap: 20px; }
+    .results.visible { display: flex; }
+    .results-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .results-header h2 { font-size: 20px; font-weight: 700; color: #1a202c; }
+    .company-type { background: #ebf4ff; color: #2563eb; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+
+    .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .card { background: white; border-radius: 14px; padding: 22px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-top: 4px solid transparent; }
+    .card.risks   { border-top-color: #f56565; }
+    .card.opps    { border-top-color: #48bb78; }
+    .card.trends  { border-top-color: #9f7aea; }
+    .card.forces  { border-top-color: #ed8936; grid-column: 1 / -1; }
+    .card.summary { border-top-color: #3b82f6; grid-column: 1 / -1; }
+
+    .card h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 14px; }
+    .card.risks h3   { color: #e53e3e; }
+    .card.opps h3    { color: #38a169; }
+    .card.trends h3  { color: #805ad5; }
+    .card.forces h3  { color: #c05621; }
+    .card.summary h3 { color: #2563eb; }
+
+    .card ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .card ul li { font-size: 13.5px; color: #2d3748; line-height: 1.55; padding-left: 16px; position: relative; }
+    .card ul li::before { content: '•'; position: absolute; left: 0; font-size: 16px; }
+    .card.risks ul li::before  { color: #f56565; }
+    .card.opps ul li::before   { color: #48bb78; }
+    .card.trends ul li::before { color: #9f7aea; }
+    .card.forces ul li::before { color: #ed8936; }
+
+    .summary-text { font-size: 14px; color: #2d3748; line-height: 1.75; }
+
+    footer { text-align: center; padding: 14px; font-size: 12px; color: #a0aec0; background: #f0f4f8; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏥 Healthcare AI Analyzer</div>
+  <div class="badge">Powered by Claude AI</div>
+</header>
+
+<div class="main">
+  <div class="left-panel">
+    <h1>US Healthcare Company Analyzer</h1>
+    <p class="subtitle">Describe any US healthcare company. The AI agent generates a real-time structured analysis: risks, opportunities, trends, Five Forces, and strategic summary.</p>
+    <hr class="divider"/>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <label>Company Description</label>
+      <textarea id="inputText" placeholder="Example: An independent primary care clinic in Dallas, TX with 4 physicians, serving Medicare and Medicaid patients..."></textarea>
+      <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">⚡ Analyze with AI</button>
+    </div>
+    <hr class="divider"/>
+    <div class="example-chips">
+      <div class="examples-label">Try a quick example →</div>
+      <div class="chip" onclick="loadExample('clinic')">🏥 Small Primary Care Clinic</div>
+      <div class="chip" onclick="loadExample('telehealth')">📱 Telehealth Startup</div>
+      <div class="chip" onclick="loadExample('insurance')">🛡️ Insurance Provider</div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="placeholder-state" id="placeholderState">
+      <div class="icon">🤖</div>
+      <h2>AI ready to analyze</h2>
+      <p>Enter a company description on the left, or pick one of the examples. Claude will generate a real analysis in seconds.</p>
+    </div>
+
+    <div class="loading" id="loadingState">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+        <span>Analyzing with Claude AI...</span>
+      </div>
+      <div class="loading-steps">
+        <div class="loading-step" id="step1">📤 Sending company data to Claude</div>
+        <div class="loading-step" id="step2">🧠 Analyzing risks, opportunities, Five Forces...</div>
+        <div class="loading-step" id="step3">📋 Structuring results into report</div>
+      </div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="results" id="resultsState">
+      <div class="results-header">
+        <h2 id="resultsTitle">Analysis Results</h2>
+        <span class="company-type" id="companyLabel">AI Analysis</span>
+      </div>
+      <div class="cards-grid">
+        <div class="card risks">
+          <h3>⚠️ Risks</h3>
+          <ul id="risksList"></ul>
+        </div>
+        <div class="card opps">
+          <h3>🚀 Opportunities</h3>
+          <ul id="oppsList"></ul>
+        </div>
+        <div class="card trends">
+          <h3>📈 Trends</h3>
+          <ul id="trendsList"></ul>
+        </div>
+        <div class="card forces">
+          <h3>⚡ Five Forces Analysis</h3>
+          <ul id="forcesList"></ul>
+        </div>
+        <div class="card summary">
+          <h3>📋 Strategic Summary</h3>
+          <p class="summary-text" id="summaryText"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>US Healthcare AI Analyzer · Powered by Claude (Anthropic) · Built as an AI portfolio project</footer>
+
+<script>
+  const API_ENDPOINT = "http://localhost:5000/analyze";
+
+  const EXAMPLES = {
+    clinic: "Hillcrest Internal Medicine — independent physician-owned primary care clinic in Dallas, TX. 2 board-certified physicians + 2 physician assistants. Services: annual physicals, preventive medicine, chronic disease management, acute care, women's health, telehealth. Minority-owned business, 30+ years combined experience. Competing with large health systems like Baylor Scott & White and UT Southwestern.",
+    telehealth: "MindBridge Health — mental health telehealth startup founded 2022 in San Francisco, operating in 22 states. 35 employees, 180 contracted therapists and psychiatrists. 12,000 active patients. Revenue: subscription $89/month + insurance billing (Aetna, BCBS in-network). Services: individual therapy, psychiatry, couples counseling via video.",
+    insurance: "BlueStar Health Plans — regional health insurance provider in Southeastern US (Georgia, Alabama, South Carolina, Tennessee). 2.3 million members, 1,800 employees. Products: individual marketplace plans, employer-sponsored plans, Medicare Advantage. $4.2B annual premium revenue, 87% medical loss ratio."
+  };
+
+  function loadExample(type) {
+    document.getElementById('inputText').value = EXAMPLES[type];
+    analyze();
+  }
+
+  function showState(state) {
+    document.getElementById('placeholderState').style.display = state === 'placeholder' ? 'flex' : 'none';
+    document.getElementById('loadingState').classList.toggle('visible', state === 'loading');
+    document.getElementById('resultsState').classList.toggle('visible', state === 'results');
+    document.getElementById('errorBox').classList.toggle('visible', state === 'error');
+  }
+
+  function animateSteps() {
+    const steps = ['step1','step2','step3'];
+    steps.forEach(s => document.getElementById(s).className = 'loading-step');
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i > 0) document.getElementById(steps[i-1]).className = 'loading-step done';
+      if (i < steps.length) { document.getElementById(steps[i]).className = 'loading-step active'; i++; }
+      else clearInterval(interval);
+    }, 1200);
+    return interval;
+  }
+
+  function renderList(id, items) {
+    const ul = document.getElementById(id);
+    ul.innerHTML = '';
+    (items || []).forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      ul.appendChild(li);
+    });
+  }
+
+  async function analyze() {
+    const text = document.getElementById('inputText').value.trim();
+    if (!text) { document.getElementById('inputText').focus(); return; }
+
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Analyzing...';
+    showState('loading');
+    const stepInterval = animateSteps();
+
+    try {
+      const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company: text })
+      });
+
+      clearInterval(stepInterval);
+      ['step1','step2','step3'].forEach(s => document.getElementById(s).className = 'loading-step done');
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `Server error ${response.status}`);
+      }
+
+      const analysis = await response.json();
+      const firstLine = text.split('\n')[0].slice(0, 60);
+      document.getElementById('resultsTitle').textContent = 'AI Analysis';
+      document.getElementById('companyLabel').textContent = firstLine + (firstLine.length >= 60 ? '...' : '');
+
+      renderList('risksList', analysis.risks);
+      renderList('oppsList', analysis.opportunities);
+      renderList('trendsList', analysis.trends);
+      renderList('forcesList', analysis.five_forces);
+      document.getElementById('summaryText').textContent = analysis.summary || '';
+
+      showState('results');
+    } catch (err) {
+      clearInterval(stepInterval);
+      document.getElementById('errorBox').innerHTML = `<strong>❌ Something went wrong</strong><br><br>${err.message}<br><br><small>Make sure server.py is running: <code>python server.py</code></small>`;
+      showState('error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '⚡ Analyze with AI';
+    }
+  }
+
+  document.getElementById('inputText').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.ctrlKey) analyze();
+  });
+</script>
+</body>
+</html>
