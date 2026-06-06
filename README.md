@@ -3,6 +3,13 @@
 > An AI-powered web application that generates real-time strategic analysis of any US healthcare company using Claude AI (Anthropic).
 
 **Live Demo:** https://us-healthcare-ai-analyzer-1.onrender.com
+## Screenshots
+
+![Input](ha_input.png)
+![Risks & Opportunities](ha_risks_oppurtunities.png)
+![Trends & Five Forces](ha_trends_five_forces.png)
+![Summary](ha_summary.png)
+
 
 ---
 
